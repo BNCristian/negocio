@@ -6,4 +6,3 @@ define('dbuser','user');
 define('dbpassword','password');
 define('dbport','3306');
 ?>
-

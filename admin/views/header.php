@@ -11,16 +11,18 @@
 </head>
 
 <body>
-    <h1></h1>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 </body>
 <header>
-    <img src="/negocio/images/logo.jpg" alt="Logo" class="header-logo">
+    <img src="/negocio/images/nuevo-logo.jpg" class="header-logo"
+     alt="Header Innovate Global" 
+     style="width: 100%; height: 200px; object-fit: cover; object-position: center;">
+
 <nav class="navbar navbar-expand-lg bg-primary" data-bs-theme="dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="index.php">INNOVATE GLOBAL</a>
+        <a class="navbar-brand" href="index.php">NEGOCIO</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
             aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>

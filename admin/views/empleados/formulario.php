@@ -1,4 +1,25 @@
 <h1><?php if ($accion == 'actualizar') echo "Actualizar"; else echo "Crear"; ?> empleado</h1>
+<?php if ($accion == 'actualizar'): ?>
+    <div class="d-flex justify-content-center mb-4 mt-3">
+        <?php 
+            // Sacamos la foto de la variable $data (que es la que trae los datos para editar)
+            $foto = isset($data['imagen']) ? $data['imagen'] : '';
+            
+            // Reutilizamos tu lógica antibasura
+            if (!empty($foto) && strpos($foto, '/uploads/') === 0) {
+                $ruta_foto = '/negocio' . $foto; 
+            } else {
+                $ruta_foto = '/negocio/uploads/empleado/default.png'; 
+            }
+        ?>
+        <img src="<?php echo $ruta_foto; ?>" 
+             alt="Foto del empleado" 
+             class="rounded-circle shadow-sm" 
+             style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #0d6efd;">
+    </div>
+<?php endif; ?>
+<form action="empleado.php?accion=<?php echo $accion; ?><?php if($accion=='actualizar') echo '&id='.$id; ?>" method="POST" enctype="multipart/form-data">
+    <div class="row">
 
 <form action="empleado.php?accion=<?php echo $accion; ?><?php if($accion=='actualizar') echo '&id='.$id; ?>" method="POST" enctype="multipart/form-data">
     <div class="row">
@@ -30,7 +51,7 @@
             <label class="form-label">RFC</label>
             <input type="text" class="form-control" minlength="13" maxlength="13"  name="rfc" 
             placeholder="ABCD123456H01"
-            pattern="^[A-Z&]{3,4}[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])[A-Z0-9]{3}$" 
+            pattern="^[A-Z]{3,4}[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])[A-Z0-9]{3}$" 
             value="<?php echo ($accion == 'actualizar') ? $data['rfc'] : ''; ?>"
             required>
         </div>

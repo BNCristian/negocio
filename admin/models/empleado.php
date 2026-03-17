@@ -85,62 +85,96 @@ class Empleado extends sistema {
         }
     }
 
-    function actualizar($id, $data) {
-        $this->conectar();
-        $this->getDB()->beginTransaction();
-        $cantidad = 0;
-        $empleado=$this->leerUno($id);
+    function actualizar($id_empleado, $data){
+        $empleado = $this->leerUno($id_empleado);
+        
         try {
-            if(!$this->inTransaction()){
-                $this->getDB()->beginTransaction();
-            }
-
-        if (!$empleado['correo'] == $data['correo']) {
-            $sql = 'SELECT correo FROM usuario WHERE correo = :correo';
-            $stmt = $this->getDB()->prepare($sql);
-            $stmt->bindParam(':correo', $data['correo'], PDO::PARAM_STR);
-            $stmt->execute();
-            if ($stmt->fetchColumn() > 0) {
-                $this->getDB()->rollBack();
-                return "correo_duplicado";
-            }
-        }else {
-
-                $sql = "UPDATE empleado 
-                        SET nombre = :nombre, primer_apellido = :primer_apellido, segundo_apellido = :segundo_apellido, 
-                            fecha_nacimiento = :fecha_nacimiento, rfc = :rfc, curp = :curp, imagen = :imagen, 
-                            id_municipio = :id_municipio, id_negocio = :id_negocio 
-                        WHERE id_empleado = :id_empleado"; 
-                $stmt = $this->getDB()->prepare($sql);
-        }
-
-        if(isset($data['contrasena']) && !empty($data['contrasena'])){
-            $data['contrasena'] = md5($data['contrasena']);
-            $sql='update usuario set contraseña=:contrasena where id_usuario=:id_usuario';
-            $stmt2=$this->getDB()->prepare($sql);
-            $stmt2->bindParam(':contrasena', $data['contrasena'], PDO::PARAM_STR);
-            $stmt2->bindParam(':correo', $empleado['correo'], PDO::PARAM_STR);
-            $stmt2->execute();
-        }
-
-                $stmt->bindParam(':nombre', $data['nombre'], PDO::PARAM_STR);
-                $stmt->bindParam(':primer_apellido', $data['primer_apellido'], PDO::PARAM_STR);
-                $stmt->bindParam(':segundo_apellido', $data['segundo_apellido'], PDO::PARAM_STR);
-                $stmt->bindParam(':fecha_nacimiento', $data['fecha_nacimiento'], PDO::PARAM_STR);
-                $stmt->bindParam(':rfc', $data['rfc'], PDO::PARAM_STR);
-                $stmt->bindParam(':curp', $data['curp'], PDO::PARAM_STR);
-                $stmt->bindParam(':imagen', $data['imagen'], PDO::PARAM_STR);
-                $stmt->bindParam(':id_municipio', $data['id_municipio'], PDO::PARAM_INT);
-                $stmt->bindParam(':id_negocio', $data['id_negocio'], PDO::PARAM_INT);
-                $stmt->bindParam(':id_empleado', $id, PDO::PARAM_INT);
-                
-                
-
+            // Iniciamos la transacción correctamente apuntando a la BD
+            $this->getDb()->beginTransaction();
+            
+            // 1. Verificamos si cambió el correo
+            if ($empleado['correo'] !== $data['correo']) {
+                $sql = "SELECT id_usuario FROM usuario WHERE correo = :correo";
+                $stmt = $this->getDb()->prepare($sql);
+                $stmt->bindValue(':correo', $data['correo'], PDO::PARAM_STR);
                 $stmt->execute();
-            return $stmt->rowCount();
-        }catch (PDOException $e) {
-            $this->getDB()->rollBack();
-            return false;
+                
+                if ($stmt->rowCount() > 0) {
+                    throw new Exception("El correo ya existe");
+                }
+                
+                // Actualizamos el correo en la tabla usuario
+                $sql = "UPDATE usuario SET correo = :correo WHERE id_usuario = :id_usuario";
+                $stmt = $this->getDb()->prepare($sql);
+                $stmt->bindValue(':correo', $data['correo'], PDO::PARAM_STR);
+                $stmt->bindValue(':id_usuario', $empleado['id_usuario'], PDO::PARAM_INT);
+                $stmt->execute();
+            }
+
+            // 2. Verificamos si puso contraseña nueva
+            if (isset($data['password']) && !empty(trim($data['password']))) {
+                $sql = "UPDATE usuario SET contrasena = :contrasena WHERE id_usuario = :id_usuario";
+                $stmt = $this->getDb()->prepare($sql);
+                $stmt->bindValue(':contrasena', md5($data['password']), PDO::PARAM_STR);
+                $stmt->bindValue(':id_usuario', $empleado['id_usuario'], PDO::PARAM_INT);
+                $stmt->execute();
+            }
+
+            // 3. Subimos la foto si es que seleccionó una nueva en el formulario
+            $fotografia = null;
+            if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+                $fotografia = $this->cargarFotografia('imagen', 'empleado', $data);
+            }
+
+            // 4. Actualizamos al empleado
+            $sql = "UPDATE empleado SET
+                nombre = :nombre,
+                primer_apellido = :primer_apellido,
+                segundo_apellido = :segundo_apellido,
+                fecha_nacimiento = :fecha_nacimiento,
+                rfc = :rfc,
+                curp = :curp,
+                imagen = :imagen,
+                id_municipio = :id_municipio,
+                id_negocio = :id_negocio
+                WHERE id_empleado = :id_empleado";
+            
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->bindValue(':nombre', $data['nombre'], PDO::PARAM_STR);
+            $stmt->bindValue(':primer_apellido', $data['primer_apellido'], PDO::PARAM_STR);
+            
+            // Si el segundo apellido está vacío, le pasamos un NULL real a la BD
+            if (!empty($data['segundo_apellido'])) {
+                $stmt->bindValue(':segundo_apellido', $data['segundo_apellido'], PDO::PARAM_STR);
+            } else {
+                $stmt->bindValue(':segundo_apellido', null, PDO::PARAM_NULL);
+            }
+            
+            $stmt->bindValue(':fecha_nacimiento', $data['fecha_nacimiento'], PDO::PARAM_STR);
+            $stmt->bindValue(':rfc', $data['rfc'], PDO::PARAM_STR);
+            $stmt->bindValue(':curp', $data['curp'], PDO::PARAM_STR);
+            
+            // Si subió foto nueva la guardamos, si no, rescatamos la que ya tenía antes
+            if ($fotografia !== null) {
+                $stmt->bindValue(':imagen', $fotografia, PDO::PARAM_STR);
+            } else {
+                $stmt->bindValue(':imagen', $empleado['imagen'], PDO::PARAM_STR);
+            }
+            
+            $stmt->bindValue(':id_municipio', $data['id_municipio'], PDO::PARAM_INT);
+            $stmt->bindValue(':id_negocio', $data['id_negocio'], PDO::PARAM_INT);
+            $stmt->bindValue(':id_empleado', $id_empleado, PDO::PARAM_INT);
+            
+            $stmt->execute();
+            
+            // Si llegamos hasta aquí sin que nada explote, guardamos los cambios definitivamente
+            $this->getDb()->commit();
+            return true;
+            
+        } catch (Exception $e) {
+            // Si algo falla, damos reversa a todo
+            $this->getDb()->rollback();
+            throw new Exception($e->getMessage());
         }
     }
 
