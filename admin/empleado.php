@@ -5,6 +5,7 @@ require_once(__DIR__."/models/municipio.php");
 require_once(__DIR__."/models/negocio.php"); 
 
 $empleado = new Empleado(); // Objeto intacto
+$empleado->checarRol('Administrador');
 $municipio = new Municipio();
 $negocio = new Negocio();
 
